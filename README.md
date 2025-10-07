@@ -78,8 +78,8 @@ GATO/
 Abre una terminal o CMD y escribe:
 
 ```bash
-git clone https://github.com/usuario/gato-minimax.git
-cd gato-minimax
+git clone https://github.com/katherine4G/gato-minimax.git
+cd Gato
 ```
 
 ---
