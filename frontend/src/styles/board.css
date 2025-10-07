@@ -1,0 +1,97 @@
+/* frontend/src/styles/board.css */
+
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 120px);
+  grid-template-rows: repeat(3, 120px);
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+/* Celda individual */
+.cell {
+  width: 120px;
+  height: 120px;
+  background-color: var(--accent-color);
+  color: white;
+  font-size: 3rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: var(--transition);
+  user-select: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Hover con brillo */
+.cell:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+/* Animación al hacer clic */
+.cell:active {
+  transform: scale(0.95);
+}
+
+/* Desactivar clics si la celda ya tiene valor */
+.cell.taken {
+  cursor: not-allowed;
+  opacity: 0.8;
+  transform: none;
+}
+
+/* Colores personalizados por símbolo */
+.cell.X {
+  background-color: #e35353; /* rojo suave para X */
+}
+
+.cell.O {
+  background-color: #4da9ff; /* azul claro para O */
+}
+
+/* Mensaje de estado */
+.status {
+  margin: 0.8rem 0 1.5rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+/* Transición suave del tablero */
+@keyframes pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.board .cell {
+  animation: pop 0.3s ease-in-out;
+}
+
+/* Responsivo */
+@media (max-width: 600px) {
+  .board {
+    grid-template-columns: repeat(3, 90px);
+    grid-template-rows: repeat(3, 90px);
+    gap: 10px;
+  }
+
+  .cell {
+    width: 90px;
+    height: 90px;
+    font-size: 2.2rem;
+  }
+}

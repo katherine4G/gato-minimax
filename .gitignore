@@ -1,0 +1,43 @@
+#gitignore
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# Build artifacts
+*.tsbuildinfo
+coverage/
+*.tgz
+
+# Temporary
+*.tmp
+*.temp
+*.bak
+
+# Misc
+.vercel_output/
