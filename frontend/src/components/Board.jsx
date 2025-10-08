@@ -1,13 +1,21 @@
-/**
- * @param {{ board: import("frontend/src/utils/MinimaxAI").Cell[], onCell: (i:number)=>void }} props
- */
+// frontend/src/components/Board.jsx
 import "../styles/board.css";
 
-export default function Board({ board, onCell }) {
+/**
+ * @param {{ board: ("X"|"O"|null)[], onCell:(i:number)=>void, winningLine?: number[] }} props
+ */
+export default function Board({ board, onCell, winningLine = [] }) {
+  const isWin = (i) => winningLine?.includes(i);
+
   return (
     <div className="board">
       {board.map((v, i) => (
-        <button key={i} className="cell" onClick={() => onCell(i)} aria-label={`cell-${i}`}>
+        <button
+          key={i}
+          className={`cell ${isWin(i) ? "win" : ""}`}
+          onClick={() => onCell(i)}
+          aria-label={`cell-${i}`}
+        >
           {v}
         </button>
       ))}
