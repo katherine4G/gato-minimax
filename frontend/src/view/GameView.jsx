@@ -7,7 +7,6 @@ import { fetchMove } from "../services/apiService";
 import "../styles/board.css";
 
 export default class GameView extends React.Component {
-  // para no disparar confeti varias veces por el mismo juego
   _prevWinner = null;
 
   constructor(props) {
@@ -17,57 +16,107 @@ export default class GameView extends React.Component {
       level: "hard",
       ai: "O",
       lock: false,
+      outcome: "none", // "none" | "win" | "lose"
     };
   }
 
   componentDidMount() {
-    // Si la IA es "X", juega automáticamente al iniciar
     if (this.state.ai === "X") this.makeAIMove();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  async componentDidUpdate(prevProps, prevState) {
     const w = winner(this.state.board);
-
-    // dispara confeti SOLO cuando pasamos de "sin ganador" a "con ganador"
     if (!this._prevWinner && w) {
       this._prevWinner = w;
-      this.triggerConfetti();
+      const aiWon = w === this.state.ai;
+      this.setState({ outcome: aiWon ? "lose" : "win" });
+      if (aiWon) {
+        // derrota: sin confeti, solo efecto oscuro/sacudida
+        await this.triggerDefeatEffect();
+      } else {
+        // victoria humano: confeti
+        await this.triggerWinConfetti();
+      }
     }
-    // si resetean el juego, vuelve a permitir confeti
+
+
+    // si se resetea el tablero a vacío, limpiar marcadores
     if (prevState.board !== this.state.board && !w && this._prevWinner) {
-      // si el tablero vuelve a vacío por reset, limpia el marcador
       const allEmpty = this.state.board.every(v => v === null);
-      if (allEmpty) this._prevWinner = null;
+      if (allEmpty) {
+        this._prevWinner = null;
+        if (this.state.outcome !== "none") this.setState({ outcome: "none" });
+      }
     }
   }
 
-  triggerConfetti = async () => {
-    // import dinámico para que no rompa el SSR de Next
+  // 🎉 Confeti “ganó humano”
+  triggerWinConfetti = async () => {
     const mod = await import("canvas-confetti");
     const confetti = mod.default;
 
     const duration = 1600;
     const end = Date.now() + duration;
 
-    // ráfagas laterales
     (function frame() {
-      confetti({ particleCount: 5, startVelocity: 45, spread: 70, origin: { x: 0.1, y: 0.3 } });
-      confetti({ particleCount: 5, startVelocity: 45, spread: 70, origin: { x: 0.9, y: 0.3 } });
+      confetti({
+        particleCount: 6,
+        startVelocity: 48,
+        spread: 75,
+        origin: { x: 0.1, y: 0.3 },
+        colors: ["#34d399", "#60a5fa", "#f59e0b", "#f472b6"], // verde/azul/dorado/rosa
+      });
+      confetti({
+        particleCount: 6,
+        startVelocity: 48,
+        spread: 75,
+        origin: { x: 0.9, y: 0.3 },
+        colors: ["#34d399", "#60a5fa", "#f59e0b", "#f472b6"],
+      });
       if (Date.now() < end) requestAnimationFrame(frame);
     })();
 
-    // boom central
     confetti({
       particleCount: 140,
       spread: 90,
       scalar: 0.95,
       origin: { x: 0.5, y: 0.2 },
+      colors: ["#34d399", "#60a5fa", "#f59e0b", "#f472b6"],
+    });
+  };
+
+  // 💥 Efecto “derrota”: ráfaga oscura descendente + sacudida (CSS)
+  triggerDefeatEffect = async () => {
+    const mod = await import("canvas-confetti");
+    const confetti = mod.default;
+
+    // lluvia corta de partículas oscuras cayendo
+    confetti({
+      particleCount: 160,
+      spread: 50,
+      startVelocity: 20,
+      gravity: 1.1,            // cae hacia abajo
+      drift: 0,                // sin desplazamiento lateral
+      origin: { x: 0.5, y: -0.1 },
+      colors: ["#111827", "#6b7280", "#ef4444"], // gris oscuro, gris, rojo
+      scalar: 0.8,
+      ticks: 180,
+    });
+
+    // golpe “boom” rojo pequeño
+    confetti({
+      particleCount: 60,
+      spread: 40,
+      startVelocity: 30,
+      origin: { x: 0.5, y: 0.15 },
+      colors: ["#ef4444", "#b91c1c", "#111827"],
+      scalar: 0.9,
     });
   };
 
   resetGame = () => {
-    this.setState({ board: Array(9).fill(null), lock: false }, () => {
-      this._prevWinner = null; // permitir confeti de nuevo
+    this.setState({ board: Array(9).fill(null), lock: false, outcome: "none" }, () => {
+      this._prevWinner = null;
       if (this.state.ai === "X") this.makeAIMove();
     });
   };
@@ -105,12 +154,13 @@ export default class GameView extends React.Component {
   };
 
   render() {
-    const { board, ai, level } = this.state;
+    const { board, ai, level, outcome } = this.state;
     const w = winner(board);
     const full = isFull(board);
     const turn = nextTurn(board);
     const status = w ? `Ganó ${w}` : full ? "Empate" : `Turno: ${turn}`;
     const line = winningLine(board) ?? [];
+    const cardClass = `card ${outcome === "lose" ? "defeat" : ""}`;
 
     return (
       <div className="container">
@@ -119,7 +169,7 @@ export default class GameView extends React.Component {
           <span className="badge">Análisis de Algoritmos</span>
         </div>
 
-        <div className="card">
+        <div className={cardClass}>
           <Controls
             level={level}
             ai={ai}
@@ -127,13 +177,20 @@ export default class GameView extends React.Component {
             onAi={this.handleAiChange}
             onReset={this.resetGame}
           />
+
           <div className="status">{status}</div>
 
           <Board
             board={board}
             onCell={this.handleCellClick}
             winningLine={line}
+            outcome={outcome}   // 👈 agrega esta línea
           />
+
+
+          {outcome === "win" && <div className="banner">¡Victoria! 🎉</div>}
+          {outcome === "lose" && <div className="banner">Derrota… 😵</div>}
+          {w === null && !full && <div className="banner" style={{ opacity: .7 }}>Tu turno</div>}
         </div>
       </div>
     );

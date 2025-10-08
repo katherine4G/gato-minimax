@@ -4,7 +4,7 @@ import "../styles/board.css";
 /**
  * @param {{ board: ("X"|"O"|null)[], onCell:(i:number)=>void, winningLine?: number[] }} props
  */
-export default function Board({ board, onCell, winningLine = [] }) {
+export default function Board({ board, onCell, winningLine = [], outcome = "none" }) {
   const isWin = (i) => winningLine?.includes(i);
 
   return (
@@ -12,12 +12,12 @@ export default function Board({ board, onCell, winningLine = [] }) {
       {board.map((v, i) => (
         <button
           key={i}
-          className={`cell ${isWin(i) ? "win" : ""}`}
+           className={`cell ${isWin(i) ? (outcome === "lose" ? "lose" : "win") : ""}`}
           onClick={() => onCell(i)}
-          aria-label={`cell-${i}`}
         >
           {v}
         </button>
+
       ))}
     </div>
   );
