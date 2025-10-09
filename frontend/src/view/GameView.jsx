@@ -1,3 +1,4 @@
+// frontend/src/view/GameView.jsx
 "use client";
 import React from "react";
 import Board from "../components/Board";
@@ -8,6 +9,7 @@ import "../styles/board.css";
 
 export default class GameView extends React.Component {
   _prevWinner = null;
+  _thinkingInterval = null;
 
   constructor(props) {
     super(props);
@@ -15,32 +17,32 @@ export default class GameView extends React.Component {
       board: Array(9).fill(null),
       level: "hard",
       ai: "O",
+      mode: "ia", // "ia" | "2p"
       lock: false,
-      outcome: "none", // "none" | "win" | "lose"
+      thinking: false,
+      thinkingText: "Pensando",
+      outcome: "none",
+      turn: "X",
     };
   }
 
   componentDidMount() {
-    if (this.state.ai === "X") this.makeAIMove();
+    if (this.state.mode === "ia" && this.state.ai === "X") {
+      this.makeAIMove();
+    }
   }
 
   async componentDidUpdate(prevProps, prevState) {
     const w = winner(this.state.board);
     if (!this._prevWinner && w) {
       this._prevWinner = w;
-      const aiWon = w === this.state.ai;
+      const aiWon = w === this.state.ai && this.state.mode === "ia";
       this.setState({ outcome: aiWon ? "lose" : "win" });
-      if (aiWon) {
-        // derrota: sin confeti, solo efecto oscuro/sacudida
-        await this.triggerDefeatEffect();
-      } else {
-        // victoria humano: confeti
-        await this.triggerWinConfetti();
-      }
+      if (aiWon) await this.triggerDefeatEffect();
+      else await this.triggerWinConfetti();
     }
 
-
-    // si se resetea el tablero a vacío, limpiar marcadores
+    // limpiar marcador al reiniciar
     if (prevState.board !== this.state.board && !w && this._prevWinner) {
       const allEmpty = this.state.board.every(v => v === null);
       if (allEmpty) {
@@ -50,11 +52,10 @@ export default class GameView extends React.Component {
     }
   }
 
-  // 🎉 Confeti “ganó humano”
+  // 🎉 Efecto “ganó humano”
   triggerWinConfetti = async () => {
     const mod = await import("canvas-confetti");
     const confetti = mod.default;
-
     const duration = 1600;
     const end = Date.now() + duration;
 
@@ -64,7 +65,7 @@ export default class GameView extends React.Component {
         startVelocity: 48,
         spread: 75,
         origin: { x: 0.1, y: 0.3 },
-        colors: ["#34d399", "#60a5fa", "#f59e0b", "#f472b6"], // verde/azul/dorado/rosa
+        colors: ["#34d399", "#60a5fa", "#f59e0b", "#f472b6"],
       });
       confetti({
         particleCount: 6,
@@ -85,25 +86,22 @@ export default class GameView extends React.Component {
     });
   };
 
-  // 💥 Efecto “derrota”: ráfaga oscura descendente + sacudida (CSS)
+  // Efecto “derrota”: lluvia oscura descendente
   triggerDefeatEffect = async () => {
     const mod = await import("canvas-confetti");
     const confetti = mod.default;
 
-    // lluvia corta de partículas oscuras cayendo
     confetti({
       particleCount: 160,
       spread: 50,
       startVelocity: 20,
-      gravity: 1.1,            // cae hacia abajo
-      drift: 0,                // sin desplazamiento lateral
+      gravity: 1.1,
       origin: { x: 0.5, y: -0.1 },
-      colors: ["#111827", "#6b7280", "#ef4444"], // gris oscuro, gris, rojo
+      colors: ["#111827", "#6b7280", "#ef4444"],
       scalar: 0.8,
       ticks: 180,
     });
 
-    // golpe “boom” rojo pequeño
     confetti({
       particleCount: 60,
       spread: 40,
@@ -114,15 +112,47 @@ export default class GameView extends React.Component {
     });
   };
 
-  resetGame = () => {
-    this.setState({ board: Array(9).fill(null), lock: false, outcome: "none" }, () => {
+resetGame = () => {
+  const { ai, mode } = this.state;
+
+  const firstTurn =
+    mode === "2p"
+      ? ai
+      : ai === "X"
+      ? "X"
+      : "X"; //  X siempre arranca cuando IA juega de segundo
+
+  const shouldLock = mode === "ia" && ai === "X"; // IA empieza = bloqueado
+  const shouldThink = false;
+
+  this.setState(
+    {
+      board: Array(9).fill(null),
+      lock: shouldLock,
+      thinking: shouldThink,
+      outcome: "none",
+      turn: firstTurn,
+    },
+    async () => {
       this._prevWinner = null;
-      if (this.state.ai === "X") this.makeAIMove();
-    });
-  };
+
+      //  Si la IA juega primero, hace su movimiento con delay
+      if (mode === "ia" && ai === "X") {
+        this.setState({ thinking: true, thinkingText: "Pensando" });
+        await new Promise((r) => setTimeout(r, 1000));
+        await this.makeAIMove();
+      }
+    }
+  );
+};
+
 
   handleAiChange = (ai) => {
     this.setState({ ai }, this.resetGame);
+  };
+
+  handleModeChange = (mode) => {
+    this.setState({ mode }, this.resetGame);
   };
 
   makeAIMove = async () => {
@@ -131,36 +161,63 @@ export default class GameView extends React.Component {
       const { index: aiMove } = await fetchMove(board, ai, level);
       if (aiMove !== null && aiMove >= 0) {
         const updated = board.map((v, i) => (i === aiMove ? ai : v));
-        this.setState({ board: updated });
+        this.setState({ board: updated, turn: ai === "X" ? "O" : "X" });
       }
     } catch (err) {
       console.error(err);
     } finally {
-      this.setState({ lock: false });
+      this.setState({ lock: false, thinking: false });
+      clearInterval(this._thinkingInterval);
     }
   };
 
-  handleCellClick = async (index) => {
-    const { board, ai, lock } = this.state;
-    if (lock || board[index] || winner(board) || isFull(board)) return;
+handleCellClick = async (index) => {
+  const { board, ai, lock, mode, turn } = this.state;
+  if (lock || board[index] || winner(board) || isFull(board)) return;
 
-    const human = ai === "X" ? "O" : "X";
-    const newBoard = board.map((v, i) => (i === index ? human : v));
-    this.setState({ board: newBoard }, async () => {
-      if (winner(newBoard) || isFull(newBoard)) return;
-      this.setState({ lock: true });
+  //  Bloquea de inmediato antes de actualizar el tablero
+  this.setState({ lock: true });
+
+  const newBoard = board.map((v, i) => (i === index ? turn : v));
+  const next = turn === "X" ? "O" : "X";
+
+  this.setState({ board: newBoard, turn: next }, async () => {
+    if (winner(newBoard) || isFull(newBoard)) {
+      this.setState({ lock: false });
+      return;
+    }
+
+    //  Si es modo IA y ahora es turno de la IA
+    if (mode === "ia" && next === ai) {
+      this.setState({ thinking: true, thinkingText: "Pensando" });
+
+      let dots = 0;
+      this._thinkingInterval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        this.setState({ thinkingText: "Pensando" + ".".repeat(dots) });
+      }, 500);
+
+      // Simula el tiempo de “pensar”
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       await this.makeAIMove();
-    });
-  };
+    } else {
+      // Si no es turno de la IA, desbloquea de nuevo
+      this.setState({ lock: false });
+    }
+  });
+};
 
   render() {
-    const { board, ai, level, outcome } = this.state;
+    const { board, ai, level, outcome, thinking, thinkingText, mode, turn } = this.state;
     const w = winner(board);
     const full = isFull(board);
-    const turn = nextTurn(board);
-    const status = w ? `Ganó ${w}` : full ? "Empate" : `Turno: ${turn}`;
     const line = winningLine(board) ?? [];
     const cardClass = `card ${outcome === "lose" ? "defeat" : ""}`;
+
+    const status = thinking
+      ? thinkingText
+      : w ? `Ganó ${w}` : full ? "Empate" : `Turno: ${turn}`;
 
     return (
       <div className="container">
@@ -170,13 +227,50 @@ export default class GameView extends React.Component {
         </div>
 
         <div className={cardClass}>
-          <Controls
-            level={level}
-            ai={ai}
-            onLevel={(v) => this.setState({ level: v })}
-            onAi={this.handleAiChange}
-            onReset={this.resetGame}
-          />
+          {/* Controles dinámicos */}
+          <div className="controls-row" style={{ textAlign: "center", marginBottom: "8px" }}>
+            <label style={{ marginRight: "8px" }}>Modo:</label>
+            <select
+              value={mode}
+              onChange={(e) => this.handleModeChange(e.target.value)}
+              style={{ padding: "3px 6px", borderRadius: "6px" }}
+            >
+              <option value="ia">Jugador vs IA</option>
+              <option value="2p">2 Jugadores</option>
+            </select>
+          </div>
+
+          {/* Solo visible en modo IA */}
+          {mode === "ia" && (
+            <Controls
+              level={level}
+              ai={ai}
+              onLevel={(v) => this.setState({ level: v })}
+              onAi={this.handleAiChange}
+              onReset={this.resetGame}
+            />
+          )}
+
+          {/* En modo 2P se reemplaza por un simple selector */}
+          {mode === "2p" && (
+            <div className="two-player-settings" style={{ textAlign: "center", marginBottom: "10px" }}>
+              <label style={{ marginRight: "8px" }}>Jugador que empieza:</label>
+              <select
+                value={ai}
+                onChange={(e) => this.handleAiChange(e.target.value)}
+                style={{ padding: "3px 6px", borderRadius: "6px" }}
+              >
+                <option value="X">X</option>
+                <option value="O">O</option>
+              </select>
+              <button
+                style={{ marginLeft: "10px", padding: "4px 8px", borderRadius: "6px" }}
+                onClick={this.resetGame}
+              >
+                Reiniciar
+              </button>
+            </div>
+          )}
 
           <div className="status">{status}</div>
 
@@ -184,13 +278,18 @@ export default class GameView extends React.Component {
             board={board}
             onCell={this.handleCellClick}
             winningLine={line}
-            outcome={outcome}   // 👈 agrega esta línea
+            outcome={outcome}
           />
-
 
           {outcome === "win" && <div className="banner">¡Victoria! 🎉</div>}
           {outcome === "lose" && <div className="banner">Derrota… 😵</div>}
-          {w === null && !full && <div className="banner" style={{ opacity: .7 }}>Tu turno</div>}
+          
+          {/* “Tu turno” solo visible en modo IA */}
+          {mode === "ia" && !w && !full && !thinking && (
+            <div className="banner" style={{ opacity: 0.7 }}>
+              {turn !== ai ? "Tu turno" : ""}
+            </div>
+          )}
         </div>
       </div>
     );
