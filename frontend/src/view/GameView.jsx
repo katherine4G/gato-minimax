@@ -213,7 +213,8 @@ handleCellClick = async (index) => {
     const w = winner(board);
     const full = isFull(board);
     const line = winningLine(board) ?? [];
-    const cardClass = `card ${outcome === "lose" ? "defeat" : ""}`;
+   const cardClass = `card ${outcome === "lose" ? "defeat" : ""} ${mode === "2p" ? "mode-2p" : "mode-ia"}`;
+
 
     const status = thinking
       ? thinkingText
@@ -230,17 +231,17 @@ handleCellClick = async (index) => {
           {/* Controles dinámicos */}
           <div className="controls-row" style={{ textAlign: "center", marginBottom: "8px" }}>
             <label style={{ marginRight: "8px" }}>Modo:</label>
-            <select
-              value={mode}
-              onChange={(e) => this.handleModeChange(e.target.value)}
-              style={{ padding: "3px 6px", borderRadius: "6px" }}
-            >
+             <select
+                className="fancy-select"
+                value={mode}
+                onChange={(e) => this.handleModeChange(e.target.value)}
+              >
               <option value="ia">Jugador vs IA</option>
               <option value="2p">2 Jugadores</option>
             </select>
           </div>
 
-          {/* Solo visible en modo IA */}
+        
           {mode === "ia" && (
             <Controls
               level={level}
@@ -251,26 +252,25 @@ handleCellClick = async (index) => {
             />
           )}
 
-          {/* En modo 2P se reemplaza por un simple selector */}
           {mode === "2p" && (
-            <div className="two-player-settings" style={{ textAlign: "center", marginBottom: "10px" }}>
-              <label style={{ marginRight: "8px" }}>Jugador que empieza:</label>
-              <select
-                value={ai}
-                onChange={(e) => this.handleAiChange(e.target.value)}
-                style={{ padding: "3px 6px", borderRadius: "6px" }}
-              >
-                <option value="X">X</option>
-                <option value="O">O</option>
-              </select>
-              <button
-                style={{ marginLeft: "10px", padding: "4px 8px", borderRadius: "6px" }}
-                onClick={this.resetGame}
-              >
-                Reiniciar
-              </button>
-            </div>
-          )}
+  <div className="two-player-settings controls-grid">
+    <label className="control-label">
+      Jugador que empieza:
+      <select
+        className="fancy-select"
+        value={ai}
+        onChange={(e) => this.handleAiChange(e.target.value)}
+      >
+        <option value="X">X</option>
+        <option value="O">O</option>
+      </select>
+    </label>
+
+    <button className="fancy-button" onClick={this.resetGame}>
+      Reiniciar Partida
+    </button>
+  </div>
+)}
 
           <div className="status">{status}</div>
 

@@ -1,6 +1,4 @@
-/* frontend/src/styles/board.css */
-
-
+/*frontend/src/styles/board.css*/
 .board {
   display: grid;
   grid-template-columns: repeat(3, 120px);
@@ -8,14 +6,21 @@
   gap: 12px;
   justify-content: center;
   align-items: center;
-  margin: 1rem 0;
+  margin: 1.5rem 0;
+  perspective: 1000px;
+  animation: boardFadeIn 0.8s ease;
 }
 
-/* Celda individual */
+@keyframes boardFadeIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+
 .cell {
   width: 120px;
   height: 120px;
-  background-color: var(--accent-color);
+  background: linear-gradient(145deg, #4f65d9, #2f3ca9);
   color: white;
   font-size: 3rem;
   font-weight: 700;
@@ -25,127 +30,241 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: var(--transition);
+  transition: all 0.25s ease;
   user-select: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35),
+              inset 0 0 12px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(3px);
 }
 
-/* Hover con brillo */
+/* Efecto hover con brillo */
 .cell:hover {
-  background-color: var(--accent-hover);
-  transform: scale(1.05);
+  transform: scale(1.08);
+  box-shadow: 0 6px 18px rgba(80, 110, 255, 0.5),
+              inset 0 0 16px rgba(255, 255, 255, 0.12);
 }
 
-/* Animación al hacer clic */
+/* Efecto al hacer clic */
 .cell:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
-/* Desactivar clics si la celda ya tiene valor */
+/* Celda ocupada */
 .cell.taken {
   cursor: not-allowed;
   opacity: 0.8;
   transform: none;
 }
 
-/* Colores personalizados por símbolo */
+/* Colores por símbolo */
 .cell.X {
-  background-color: #e35353; /* rojo suave para X */
+  background: linear-gradient(145deg, #e84c4c, #b33535);
+  box-shadow: 0 5px 12px rgba(255, 60, 60, 0.4);
 }
 
 .cell.O {
-  background-color: #4da9ff; /* azul claro para O */
+  background: linear-gradient(145deg, #52a9ff, #397ec4);
+  box-shadow: 0 5px 12px rgba(82, 169, 255, 0.4);
 }
 
-/* Mensaje de estado */
-.status {
-  margin: 0.8rem 0 1.5rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: var(--text-color);
-}
-
-/* Transición suave del tablero */
+/* Animación general del tablero */
 @keyframes pop {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%   { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .board .cell {
-  animation: pop 0.3s ease-in-out;
+  animation: pop 0.25s ease-in-out;
 }
 
-/* Responsivo */
-@media (max-width: 600px) {
-  .board {
-    grid-template-columns: repeat(3, 90px);
-    grid-template-rows: repeat(3, 90px);
-    gap: 10px;
-  }
-
-  .cell {
-    width: 90px;
-    height: 90px;
-    font-size: 2.2rem;
-  }
-}
+/* =======================
+   🟢 ESTADOS ESPECIALES
+   ======================= */
 .cell.win {
   position: relative;
-  background: #fff7cc;
-  box-shadow: 0 0 0 0 rgba(255, 205, 0, 0.8);
-  animation: pop 600ms ease, glow 1.8s ease-in-out infinite alternate;
+  background: linear-gradient(145deg, #fff6b3, #ffd84a);
+  color: #222;
+  animation: glowWin 1.8s ease-in-out infinite alternate;
+  box-shadow: 0 0 24px 4px rgba(255, 215, 0, 0.7);
 }
 
-@keyframes pop {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.12); }
-  100% { transform: scale(1); }
-}
-@keyframes glow {
-  from { box-shadow: 0 0 10px 0 rgba(255, 205, 0, .8); }
-  to   { box-shadow: 0 0 24px 6px rgba(255, 205, 0, .5); }
-}
-/* Banner de estado arriba de la tarjeta */
-.banner {
-  margin-top: 8px;
-  font-weight: 800;
-  letter-spacing: .3px;
-  text-transform: uppercase;
+@keyframes glowWin {
+  from { box-shadow: 0 0 10px 2px rgba(255, 230, 100, 0.7); }
+  to   { box-shadow: 0 0 26px 6px rgba(255, 255, 180, 0.9); }
 }
 
-/* Efecto de derrota: sacude y desatura un poco el tablero/tarjeta */
+.cell.lose {
+  background: linear-gradient(145deg, #ffb1b1, #ff6f6f);
+  border: 3px solid rgba(255, 0, 0, 0.5);
+  animation: pulseRed 1.3s ease-in-out infinite alternate;
+  box-shadow: 0 0 16px 3px rgba(255, 0, 0, 0.6);
+}
+
+@keyframes pulseRed {
+  from { transform: scale(1); filter: brightness(1); }
+  to   { transform: scale(1.05); filter: brightness(1.2); }
+}
+
+/* =======================
+   🏁 ANIMACIONES DE PARTIDA
+   ======================= */
 .card.defeat {
-  animation: shake-lose 500ms ease-in-out 0s 1;
+  animation: shakeLose 600ms ease-in-out 1;
   filter: grayscale(0.35) contrast(1.1);
 }
 
-@keyframes shake-lose {
-  0%   { transform: translateX(0); }
-  15%  { transform: translateX(-6px); }
-  30%  { transform: translateX(6px); }
-  45%  { transform: translateX(-5px); }
-  60%  { transform: translateX(5px); }
-  75%  { transform: translateX(-3px); }
-  100% { transform: translateX(0); }
+@keyframes shakeLose {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
 }
-.cell.lose {
-  background: #ffe0e0;
-  box-shadow: 0 0 15px 3px rgba(255, 0, 0, 0.7);
-  animation: pulse-red 1.2s ease-in-out infinite alternate;
+
+/* =======================
+   🧠 MENSAJE DE ESTADO
+   ======================= */
+.status {
+  margin: 1rem 0 1.5rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-color);
+  text-align: center;
+  letter-spacing: 0.3px;
 }
-.cell.lose {
-  border: 3px solid #ff0000;
+
+/* Banner superior */
+.banner {
+  margin-top: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  text-shadow: 0 0 8px rgba(82, 108, 227, 0.6);
+}
+
+/* =======================
+   🎛️ CONTROLES DEL JUEGO
+   ======================= */
+.controls-container {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.controls-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Label */
+.control-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--subtext-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Select con efecto vidrio */
+.fancy-select {
+  margin-top: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-color);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.fancy-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-color);
+  transform: scale(1.05);
+}
+.fancy-select option {
+  background-color: #1a2035;
+  color: #f2f4f8;
+  font-weight: 500;
+  border: none;
+}
+
+/* Evita el blanco brillante de Windows */
+.fancy-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 6px 2px rgba(82, 108, 227, 0.5);
 }
 
 
-@keyframes pulse-red {
-  from { transform: scale(1); box-shadow: 0 0 8px 2px rgba(255, 0, 0, 0.4); }
-  to   { transform: scale(1.05); box-shadow: 0 0 20px 4px rgba(255, 0, 0, 0.8); }
+/* Cursor y transiciones suaves */
+.fancy-select:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent-hover);
+  transform: scale(1.05);
 }
 
+/* Botón principal */
+.fancy-button {
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(82, 108, 227, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+
+.fancy-button:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 15px rgba(82, 108, 227, 0.65);
+}
+
+.fancy-button:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+/* Luz flotante */
+.fancy-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.fancy-button:hover::after {
+  opacity: 1;
+}
+
+
+.card.mode-ia {
+  background: linear-gradient(145deg, #151d34, #1d2846);
+  box-shadow: 0 0 25px rgba(80, 110, 255, 0.35);
+  transition: all 0.4s ease;
+}
+
+/* Modo 2 Jugadores */
+.card.mode-2p {
+  background: linear-gradient(145deg, #151d34, #1d2846);
+  box-shadow: 0 0 25px rgba(80, 110, 255, 0.35);
+  transition: all 0.4s ease;
+}

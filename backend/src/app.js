@@ -13,7 +13,6 @@ app.use(bodyParser.json());
 // Rutas de la API
 app.use("/api", gameRoute);
 
-// Ruta base opcional para verificar que el backend está activo
 app.get("/", (req, res) => {
   res.send("Backend del juego activo");
 });
